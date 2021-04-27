@@ -297,11 +297,11 @@ namespace cereal
       template <class T> inline
       void insertType()
       {
-        if( !itsOutputType )
+        if( !itsOutputType && !forcedTypeName)
           return;
 
         // generate a name for this new node
-        const auto nameString = util::demangledName<T>();
+        const auto nameString = forcedTypeName ? forcedTypeName : util::demangledName<T>();
 
         // allocate strings for all of the data in the XML object
         auto namePtr = itsXML.allocate_string( nameString.data(), nameString.length() + 1 );
@@ -361,6 +361,9 @@ namespace cereal
       bool itsOutputType;              //!< Controls whether type information is printed
       bool itsIndent;                  //!< Controls whether indenting is used
       bool itsSizeAttributes;          //!< Controls whether lists have a size attribute
+    // Atomontage
+    public:
+      const char* forcedTypeName{ nullptr };
   }; // XMLOutputArchive
 
   // ######################################################################
@@ -658,6 +661,22 @@ namespace cereal
             throw;
         }
       }
+
+	// TODO: added by Atomontage
+      bool hasNode(const char* expectedName, const char** typeAttribute)
+	{
+          if (rapidxml::xml_node<>* node = itsNodes.top().search(expectedName); node)
+          {
+			  if (rapidxml::xml_attribute<char>* ta = node->first_attribute("type"); ta)
+			  {
+                  //size_t size = ta->value_size();
+                  *typeAttribute = ta->value();
+			  }
+              return true;
+          }
+
+          return false;
+	}
 
       //! Loads a string from the current node from the current top node
       template<class CharT, class Traits, class Alloc> inline
