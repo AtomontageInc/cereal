@@ -665,11 +665,27 @@ namespace cereal
 	// TODO: added by Atomontage
       bool hasNode(const char* expectedName, const char** typeAttribute)
 	{
+          // check current child node first because .search() below may modify it
+          const char* name = itsNodes.top().getChildName();
+          if (name)
+          {
+              const rapidxml::xml_node<>* child = itsNodes.top().child;
+			  const size_t name_size = rapidxml::internal::measure(name);
+              if (rapidxml::internal::compare(child->name(), child->name_size(), expectedName, name_size, true))
+              {
+				  if (rapidxml::xml_attribute<char>* ta = child->first_attribute("type"); ta)
+				  {
+					  *typeAttribute = ta->value();
+				  }
+
+                  return true;
+              }
+          }
+
           if (rapidxml::xml_node<>* node = itsNodes.top().search(expectedName); node)
           {
 			  if (rapidxml::xml_attribute<char>* ta = node->first_attribute("type"); ta)
 			  {
-                  //size_t size = ta->value_size();
                   *typeAttribute = ta->value();
 			  }
               return true;
