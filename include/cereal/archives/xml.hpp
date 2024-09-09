@@ -361,7 +361,7 @@ namespace cereal
       bool itsOutputType;              //!< Controls whether type information is printed
       bool itsIndent;                  //!< Controls whether indenting is used
       bool itsSizeAttributes;          //!< Controls whether lists have a size attribute
-    // Atomontage
+    // Atomontage  
     public:
       const char* forcedTypeName{ nullptr };
   }; // XMLOutputArchive
@@ -417,9 +417,9 @@ namespace cereal
           as serialization starts
 
           @param stream The stream to read from.  Can be a stringstream or a file. */
-      XMLInputArchive( std::istream & stream ) :
-        InputArchive<XMLInputArchive>( this ),
-        itsData( std::istreambuf_iterator<char>( stream ), std::istreambuf_iterator<char>() )
+        XMLInputArchive(std::vector<char>&& data):
+            InputArchive<XMLInputArchive>(this),
+            itsData(std::move(data))
       {
         try
         {
@@ -445,6 +445,25 @@ namespace cereal
         else
           itsNodes.emplace( root );
       }
+
+        std::vector<char> WholeStream(std::istream& stream, size_t sizeToRead)
+        {
+            std::vector<char> all;
+            const size_t size = sizeToRead == 0 ? std::distance(std::istreambuf_iterator<char>(stream), std::istreambuf_iterator<char>()) : sizeToRead;
+            all.reserve(size + 1);
+            all.resize(size);
+            stream.seekg(0, std::ios_base::beg);
+            stream.read(all.data(), size);
+            return all;
+        }
+
+		XMLInputArchive(std::istream& stream):
+            XMLInputArchive(std::vector(std::istreambuf_iterator<char>(stream), std::istreambuf_iterator<char>()))
+        {}
+
+		XMLInputArchive(std::istream& stream, size_t size) :
+			XMLInputArchive(WholeStream(stream, size))
+		{}
 
       ~XMLInputArchive() CEREAL_NOEXCEPT = default;
 
@@ -662,9 +681,9 @@ namespace cereal
         }
       }
 
-	// TODO: added by Atomontage
+      // TODO: added by Atomontage
       bool hasNode(const char* expectedName, const char** typeAttribute)
-	{
+      {
           // check current child node first because .search() below may modify it
           const char* name = itsNodes.top().getChildName();
           if (name)
@@ -692,7 +711,7 @@ namespace cereal
           }
 
           return false;
-	}
+      }
 
       //! Loads a string from the current node from the current top node
       template<class CharT, class Traits, class Alloc> inline
